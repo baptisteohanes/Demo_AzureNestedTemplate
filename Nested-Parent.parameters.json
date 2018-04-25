@@ -1,0 +1,48 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "VmName": {
+        "value": "NestedTest"
+      },
+      "VnetName": {
+        "value": "TestVnet"
+      },
+      "VnetResourceGroup": {
+        "value": "TestVnetRG"
+      },
+      "Subnet": {
+        "value": "TestSubnet"
+      },
+      "VMSize": {
+        "value": "Standard_D2_v2"
+      },
+      "LocalAdminName": {
+        "value": "azureadmin"
+      },
+      "LocalAdminPassword": {
+        "value": "############"
+      },
+      "DomainJoinUserName": {
+        "value": "azureadmin"
+      },
+      "DomainJoinUserPassword": {
+        "value": "J@ZUR3GR@V3"
+      },
+      "DomainJoinDomain": {
+        "value": "###########"
+      },
+      "DomainJoinEnvironment": {
+        "value": "########"
+      },
+      "DomainJoinType": {
+        "value": "#########"
+      },
+      "DomainJoinCategory": {
+        "value": "#########"
+      },
+      "_artifactsLocation": {
+        "value": "https://nestedtestsa.blob.core.windows.net/linkedtemplates"
+      }
+    }
+  }

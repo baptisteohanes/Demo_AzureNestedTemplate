@@ -1,0 +1,240 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "0.1.0.0",
+    "parameters": {
+        "VmName": {
+            "type": "string",
+            "defaultValue": "TEST",
+            "metadata": {
+                "description": "Name of the VM"
+            }
+        },
+        "VnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the targeted virtual network in which the machine will be hosted"
+            }
+        },
+        "VnetResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the resource group in which the targeted virtual network is"
+            }
+        },
+        "Subnet": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the subnet were the NIC will have its primary IP"
+            }
+        },
+        "VMSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2_v2",
+            "allowedValues": [
+                "Standard_D2_v2",
+                "Standard_NV6"
+            ],
+            "metadata": {
+                "description": "Size of the VM"
+            }
+        },
+        "LocalAdminName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the local admin of the machines"
+            }
+        },
+        "LocalAdminPassword": {
+            "defaultValue": null,
+            "type": "securestring"
+        },
+        "DomainJoinUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the account used to join the machine to the domain, WITHOUT THE DOMAIN NAME"
+            }
+        },
+        "DomainJoinUserPassword": {
+            "defaultValue": null,
+            "type": "securestring",
+            "metadata": {
+                "description": "Password of the account used to join the machine to the domain"
+            }
+        },
+        "DomainJoinDomain": {
+            "type": "string",
+            "metadata": {
+                "description": "The environment the server belongs to"
+            }
+        },
+        "DomainJoinEnvironment": {
+            "type": "string",
+            "metadata": {
+                "description": "The environment the server belongs to"
+            }
+        },
+        "DomainJoinType": {
+            "type": "string",
+            "metadata": {
+                "description": "The environment the server belongs to"
+            }
+        },
+        "DomainJoinCategory": {
+            "type": "string",
+            "metadata": {
+                "description": "The environment the server belongs to"
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://urltostorageaccountcontainers",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located, WITHOUT a / at the end"
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+            }
+        }
+    },
+    "variables": {
+        "DataCenterLocation": "[resourceGroup().location]",
+        "OsDiskName": "[concat(parameters('VMname'),'-OS')]",
+        "VnetID": "[resourceId(parameters('VnetResourceGroup'),'Microsoft.Network/virtualNetworks', parameters('VNetName'))]",
+        "SubnetRefID": "[concat(variables('VnetID'),'/subnets/', parameters('Subnet'))]",
+        "DomainJoinOptions": 3,
+        "DomainJoinRoot": "loreal",
+        "DomainJoinFQDN": "[concat(parameters('DomainJoinDomain'),'.',variables('DomainJoinRoot'))]",
+        "DomainJoinLocation": "[concat('Azure_',resourceGroup().location)]",
+        "DomainJoinFullOUPath": "[concat('OU=',variables('DomainJoinLocation'),',OU=',parameters('DomainJoinCategory'),',OU=',parameters('DomainJoinType'),',OU=',parameters('DomainJoinEnvironment'),',DC=',parameters('DomainJoinDomain'), ',DC=',variables('DomainJoinRoot'))]",
+        "childTemplateName" : "Nested-Child.json"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(parameters('VMname'),'-NIC')]",
+            "apiVersion": "2016-03-30",
+            "location": "[variables('DataCenterLocation')]",
+            "tags": {
+                "displayName": "NIC"
+            },
+            "comments": "This NIC is plugged to the Azurestack lab of this specific deployment",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('SubnetRefId')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                }
+            },
+            "resources": [],
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('VMname')]",
+            "apiVersion": "2017-03-30",
+            "location": "[variables('DataCenterLocation')]",
+            "comments": "Windows domain-joined LVM",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('VMSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2016-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "name": "[variables('OSDiskName')]",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        },
+                        "diskSizeGB": 128
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('VMname')]",
+                    "adminUsername": "[parameters('LocalAdminName')]",
+                    "adminPassword": "[parameters('LocalAdminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('VMname'),'-NIC'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('VMname'),'-NIC'))]"
+            ],
+            "resources": [
+                {
+                    "apiVersion": "2017-05-10",
+                    "name": "nestedTemplate",
+                    "type": "Microsoft.Resources/deployments",
+                    "dependsOn":[
+                        "[resourceId('Microsoft.Compute/virtualMachines', parameters('VMname'))]"
+                    ],
+                    "properties": {
+                        "mode": "Incremental",
+                        "templateLink": {
+                            "uri": "[concat(parameters('_artifactsLocation'),'/' ,variables('childTemplateName'))]",
+                            "contentVersion": "1.0.0.0"
+                        },
+                        "parameters": {
+                            "DomainJoinFQDN":{
+                                "value":"[variables('DomainJoinFQDN')]"
+                            },
+                            "DomainJoinDomain":{
+                                "value":"[parameters('DomainJoinDomain')]"
+                            },
+                            "DomainJoinUserName":{
+                                "value":"[parameters('DomainJoinUserName')]"
+                            },
+                            "domainJoinUserPassword":{
+                                "value":"[parameters('domainJoinUserPassword')]"
+                            },
+                            "domainJoinOptions":{
+                                "value":"[variables('domainJoinOptions')]"
+                            },
+                            "domainJoinFullOUPath":{
+                                "value":"[variables('domainJoinFullOUPath')]"
+                            },
+                            "DataCenterLocation":{
+                                "value":"[resourceGroup().location]"
+                            },
+                            "VMname":{
+                                "value":"[parameters('VMname')]"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "outputs": {
+        "OUpath": {
+            "type": "string",
+            "value": "[variables('DomainJoinFullOUPath')]"
+        }
+    }
+}

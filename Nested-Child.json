@@ -1,0 +1,57 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "DomainJoinFQDN": {
+            "type": "string"
+        },
+        "DomainJoinDomain": {
+            "type": "string"
+        },
+        "DomainJoinUserName": {
+            "type": "string"
+        },
+        "DomainJoinOptions": {
+            "type": "string"
+        },
+        "DomainJoinFullOUPath": {
+            "type": "string"
+        },
+        "domainJoinUserPassword": {
+            "type": "securestring"
+        },
+        "DataCenterLocation": {
+            "type": "string"
+        },
+        "VMname": {
+            "type": "string"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "comments": "JsonADDomainExtension",
+            "apiVersion": "2017-03-30",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('VMname'), '/', parameters('VMname'),'DomainJoinExtension')]",
+            "location": "[parameters('DataCenterLocation')]",
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "JsonADDomainExtension",
+                "typeHandlerVersion": "1.3",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "Name": "[parameters('DomainJoinFQDN')]",
+                    "User": "[concat(parameters('DomainJoinDomain'),'\\',parameters('DomainJoinUserName'))]",
+                    "Restart": "true",
+                    "Options": "[parameters('DomainJoinOptions')]",
+                    "OUPath": "[parameters('DomainJoinFullOUPath')]"
+                },
+                "protectedSettings": {
+                    "Password": "[parameters('domainJoinUserPassword')]"
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
